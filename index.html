@@ -412,6 +412,23 @@
       </div>`; // renderResearchCard end
   }
 
+  // ─── GITHUB META CACHE ───────────────────────────────────────────────────────
+  // GitHub API sin auth: 60 req/hora. Con 8 bots × 2 calls = 16 req por fetch.
+  // Se cachea en memoria y se refresca cada 15 minutos, no en cada tick de Supabase.
+  const GH_CACHE_MS = 15 * 60 * 1000;
+  let _ghCache = null;
+  let _ghCacheAt = 0;
+
+  async function getGitHubMeta() {
+    const now = Date.now();
+    if (_ghCache && now - _ghCacheAt < GH_CACHE_MS) return _ghCache;
+    const allBots = [...ACTIVE_BOTS, ...RESEARCH_BOTS];
+    const meta = await fetchGitHubMeta(allBots);
+    _ghCache  = meta;
+    _ghCacheAt = now;
+    return meta;
+  }
+
   // ─── MAIN LOAD ───────────────────────────────────────────────────────────────
   async function loadData() {
     const content = document.getElementById("content");
@@ -421,15 +438,13 @@
 
     let statusMap = {};
     let winStats  = {};
-    let ghMeta    = {};
-
-    const allBots = [...ACTIVE_BOTS, ...RESEARCH_BOTS];
+    let ghMeta    = _ghCache ?? {}; // usa cache si existe mientras carga
 
     try {
       const [statuses, trades, meta] = await Promise.all([
         sbFetch("bot_status?select=*"),
         sbFetch("trade_log?select=bot_id,outcome"),
-        fetchGitHubMeta(allBots),
+        getGitHubMeta(),
       ]);
       for (const row of statuses) statusMap[row.bot_id] = row;
       winStats = buildWinStats(trades);
