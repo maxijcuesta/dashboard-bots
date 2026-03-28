@@ -169,55 +169,54 @@
   const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzaXlxcXhqcG5sbnJ5cmtncGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MzYzNDIsImV4cCI6MjA4OTAxMjM0Mn0.rhgavQDCOgAnnDUNj_oWC8WMXC4h8TLOJXYJmf0TnPQ";
   const REFRESH_MS    = 60_000;
 
+  const GITHUB_USER = "maxijcuesta";
+
   // ─── BOT REGISTRY ────────────────────────────────────────────────────────────
-  // Todos los bots siempre visibles. Supabase enriquece status/stats cuando tiene datos.
+  // `repo` → lee último commit (updated) y dashboard.json (nextUp) desde GitHub automáticamente.
+  // `dashboardJsonPath` → ruta al dashboard.json dentro del repo (default: "dashboard.json").
   const ACTIVE_BOTS = [
     {
       id: "weatherbot",
       label: "Weatherbot",
       desc: "Shadow-trades mercados meteorológicos en Polymarket usando datos reales de forecast (Open-Meteo).",
       defaultStatus: "shadow",
-      updated: "2026-03-27",
-      nextUp: "Ampliar cobertura a mercados de lluvia y temperatura por región.",
+      repo: "weatherbot",
     },
     {
       id: "botardobtc",
       label: "BotardoBTC",
       desc: "Estrategia maker-shadow cerrada el 25-mar. Actualmente inactivo — próxima iteración en diseño.",
       defaultStatus: "offline",
-      updated: "2026-03-25",
-      nextUp: "Diseñar nueva estrategia con señales de orderflow y re-deployar en EC2.",
+      repo: "botardobtc",
     },
     {
       id: "botardobtc2",
       label: "BotardoBTC 2",
       desc: "Colector de datos y generador de señales BTC. Alimenta modelos de análisis.",
       defaultStatus: "shadow",
-      updated: "2026-03-27",
-      nextUp: "Agregar GitHub Actions para correr el collector automáticamente cada día.",
+      repo: "botardobtc2",
     },
     {
       id: "polymarket-paper-bot",
       label: "Polymarket Paper Bot",
       desc: "Paper-trading en Polymarket vía Cloudflare Workers (Python). Estrategia de mean-reversion.",
       defaultStatus: "paper",
-      updated: "2026-03-27",
-      nextUp: "Evaluar win rate tras primeras 50 operaciones y ajustar umbrales de entrada.",
+      repo: "polymarket-paper-bot",
+      dashboardJsonPath: "project/dashboard.json",
     },
     {
       id: "botardosx3",
       label: "BotardosX3",
       desc: "Paper-trading en Polymarket vía Cloudflare Workers (TypeScript). Multi-estrategia con D1.",
       defaultStatus: "paper",
-      updated: "2026-03-27",
-      nextUp: "Integrar segunda estrategia en paralelo y comparar rendimiento.",
+      repo: "botardosx3",
     },
     {
       id: "skeleton",
       label: "Skeleton",
       desc: "Bot base en desarrollo local. Plantilla para nuevas estrategias — aún no desplegado.",
       defaultStatus: "offline",
-      updated: "2026-03-27",
+      repo: null,
       nextUp: "Subir a VPS y conectar al ciclo de reporte Supabase.",
     },
   ];
@@ -227,26 +226,61 @@
       id: "btc5m-research",
       label: "BTC 5m Research",
       desc: "Señales de momentum en velas de 5 minutos de BTC. Evaluando edge antes de paper-trading.",
-      updated: "2026-03-22",
-      nextUp: "Completar backtest con datos de marzo y decidir si promueve a paper.",
+      repo: "btc_momentum",
     },
     {
       id: "btc-micro5m",
       label: "BTC Micro 5m",
       desc: "Variante scalp en micro-caps con BTC. Experimenta con umbrales de entrada más agresivos.",
-      updated: "2026-03-22",
-      nextUp: "Ajustar threshold de entrada y correr walk-forward sobre últimos 30 días.",
+      repo: "btc_micro5m",
     },
     {
       id: "botardo-prism",
       label: "Botardo Prism",
       desc: "Ensemble overlay que combina múltiples señales. Fase de calibración de pesos.",
-      updated: "2026-03-22",
-      nextUp: "Calibrar pesos del ensemble con resultados de btc5m y btc-micro5m.",
+      repo: "botardoinvestigacion",
     },
   ];
 
-  // ─── FETCH ───────────────────────────────────────────────────────────────────
+  // ─── GITHUB FETCH ────────────────────────────────────────────────────────────
+  async function ghLastCommit(repo) {
+    try {
+      const res = await fetch(
+        `https://api.github.com/repos/${GITHUB_USER}/${repo}/commits?sha=main&per_page=1`,
+        { headers: { Accept: "application/vnd.github+json" } }
+      );
+      if (!res.ok) return null;
+      const [data] = await res.json();
+      const iso = data?.commit?.author?.date || data?.commit?.committer?.date;
+      if (!iso) return null;
+      const d = new Date(iso);
+      return d.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    } catch { return null; }
+  }
+
+  async function ghDashboardJson(repo, path = "dashboard.json") {
+    try {
+      const res = await fetch(
+        `https://raw.githubusercontent.com/${GITHUB_USER}/${repo}/main/${path}`
+      );
+      if (!res.ok) return null;
+      return await res.json();
+    } catch { return null; }
+  }
+
+  async function fetchGitHubMeta(bots) {
+    const results = await Promise.all(bots.map(async (bot) => {
+      if (!bot.repo) return { id: bot.id, updated: null, nextUp: bot.nextUp ?? null };
+      const [updated, djson] = await Promise.all([
+        ghLastCommit(bot.repo),
+        ghDashboardJson(bot.repo, bot.dashboardJsonPath ?? "dashboard.json"),
+      ]);
+      return { id: bot.id, updated, nextUp: djson?.nextUp ?? bot.nextUp ?? null };
+    }));
+    return Object.fromEntries(results.map(r => [r.id, r]));
+  }
+
+  // ─── SUPABASE FETCH ───────────────────────────────────────────────────────────
   async function sbFetch(path) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
       headers: {
@@ -302,7 +336,7 @@
   }
 
   // ─── RENDER CARDS ────────────────────────────────────────────────────────────
-  function renderActiveCard(bot, supaRow, ws) {
+  function renderActiveCard(bot, supaRow, ws, ghMeta) {
     const status   = supaRow?.status ?? bot.defaultStatus;
     const lastRun  = timeAgo(supaRow?.last_run_at);
     const hasData  = !!supaRow;
@@ -337,10 +371,12 @@
     const errBlock = status === "error" && supaRow?.last_error
       ? `<div class="card-error">${esc(supaRow.last_error)}</div>` : "";
 
-    const footerBlock = (bot.updated || bot.nextUp) ? `
+    const updated = ghMeta?.updated ?? null;
+    const nextUp  = ghMeta?.nextUp  ?? null;
+    const footerBlock = (updated || nextUp) ? `
       <div class="card-footer">
-        ${bot.updated ? `<div class="card-footer-row"><span class="footer-key">Actualizado</span><span class="footer-val">${esc(bot.updated)}</span></div>` : ""}
-        ${bot.nextUp  ? `<div class="card-footer-row"><span class="footer-key">Próximo</span><span class="footer-val">${esc(bot.nextUp)}</span></div>` : ""}
+        ${updated ? `<div class="card-footer-row"><span class="footer-key">Actualizado</span><span class="footer-val">${esc(updated)}</span></div>` : ""}
+        ${nextUp  ? `<div class="card-footer-row"><span class="footer-key">Próximo</span><span class="footer-val">${esc(nextUp)}</span></div>` : ""}
       </div>` : "";
 
     return `
@@ -357,11 +393,13 @@
       </div>`;
   }
 
-  function renderResearchCard(bot) {
-    const footerBlock = (bot.updated || bot.nextUp) ? `
+  function renderResearchCard(bot, ghMeta) {
+    const updated = ghMeta?.updated ?? null;
+    const nextUp  = ghMeta?.nextUp  ?? null;
+    const footerBlock = (updated || nextUp) ? `
       <div class="card-footer">
-        ${bot.updated ? `<div class="card-footer-row"><span class="footer-key">Actualizado</span><span class="footer-val">${esc(bot.updated)}</span></div>` : ""}
-        ${bot.nextUp  ? `<div class="card-footer-row"><span class="footer-key">Próximo</span><span class="footer-val">${esc(bot.nextUp)}</span></div>` : ""}
+        ${updated ? `<div class="card-footer-row"><span class="footer-key">Actualizado</span><span class="footer-val">${esc(updated)}</span></div>` : ""}
+        ${nextUp  ? `<div class="card-footer-row"><span class="footer-key">Próximo</span><span class="footer-val">${esc(nextUp)}</span></div>` : ""}
       </div>` : "";
     return `
       <div class="card">
@@ -371,7 +409,7 @@
         </div>
         <div class="card-desc">${esc(bot.desc)}</div>
         ${footerBlock}
-      </div>`;
+      </div>`; // renderResearchCard end
   }
 
   // ─── MAIN LOAD ───────────────────────────────────────────────────────────────
@@ -383,27 +421,32 @@
 
     let statusMap = {};
     let winStats  = {};
+    let ghMeta    = {};
+
+    const allBots = [...ACTIVE_BOTS, ...RESEARCH_BOTS];
 
     try {
-      const [statuses, trades] = await Promise.all([
+      const [statuses, trades, meta] = await Promise.all([
         sbFetch("bot_status?select=*"),
         sbFetch("trade_log?select=bot_id,outcome"),
+        fetchGitHubMeta(allBots),
       ]);
       for (const row of statuses) statusMap[row.bot_id] = row;
       winStats = buildWinStats(trades);
+      ghMeta   = meta;
       updEl.textContent = `Updated ${new Date().toLocaleTimeString()}`;
     } catch (err) {
-      banner.textContent = `No se pudo conectar a Supabase: ${err.message}`;
+      banner.textContent = `No se pudo conectar: ${err.message}`;
       banner.style.display = "block";
       updEl.textContent = `Error ${new Date().toLocaleTimeString()}`;
     }
 
     const activeHtml = ACTIVE_BOTS
-      .map(b => renderActiveCard(b, statusMap[b.id] ?? null, winStats))
+      .map(b => renderActiveCard(b, statusMap[b.id] ?? null, winStats, ghMeta[b.id]))
       .join("");
 
     const researchHtml = RESEARCH_BOTS
-      .map(b => renderResearchCard(b))
+      .map(b => renderResearchCard(b, ghMeta[b.id]))
       .join("");
 
     content.innerHTML = `
