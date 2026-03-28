@@ -124,6 +124,26 @@
       border-radius: 6px; padding: 0.4rem 0.6rem; word-break: break-word;
     }
 
+    .card-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      padding-top: 0.55rem;
+      border-top: 1px solid var(--border);
+    }
+    .card-footer-row {
+      display: flex;
+      gap: 0.45rem;
+      font-size: 0.73rem;
+      line-height: 1.4;
+    }
+    .footer-key {
+      color: var(--muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .footer-val { color: var(--text); opacity: 0.8; }
+
     #error-banner {
       max-width: 1000px; margin: 0 auto 1.5rem;
       background: var(--error-bg); border: 1px solid #5c1414;
@@ -157,36 +177,48 @@
       label: "Weatherbot",
       desc: "Shadow-trades mercados meteorológicos en Polymarket usando datos reales de forecast (Open-Meteo).",
       defaultStatus: "shadow",
+      updated: "2026-03-27",
+      nextUp: "Ampliar cobertura a mercados de lluvia y temperatura por región.",
     },
     {
       id: "botardobtc",
       label: "BotardoBTC",
-      desc: "Estrategia maker-shadow cerrada el 25-mar. Próxima iteración en diseño — actualmente inactivo.",
+      desc: "Estrategia maker-shadow cerrada el 25-mar. Actualmente inactivo — próxima iteración en diseño.",
       defaultStatus: "offline",
+      updated: "2026-03-25",
+      nextUp: "Diseñar nueva estrategia con señales de orderflow y re-deployar en EC2.",
     },
     {
       id: "botardobtc2",
       label: "BotardoBTC 2",
       desc: "Colector de datos y generador de señales BTC. Alimenta modelos de análisis.",
       defaultStatus: "shadow",
+      updated: "2026-03-27",
+      nextUp: "Agregar GitHub Actions para correr el collector automáticamente cada día.",
     },
     {
       id: "polymarket-paper-bot",
       label: "Polymarket Paper Bot",
       desc: "Paper-trading en Polymarket vía Cloudflare Workers (Python). Estrategia de mean-reversion.",
       defaultStatus: "paper",
+      updated: "2026-03-27",
+      nextUp: "Evaluar win rate tras primeras 50 operaciones y ajustar umbrales de entrada.",
     },
     {
       id: "botardosx3",
       label: "BotardosX3",
       desc: "Paper-trading en Polymarket vía Cloudflare Workers (TypeScript). Multi-estrategia con D1.",
       defaultStatus: "paper",
+      updated: "2026-03-27",
+      nextUp: "Integrar segunda estrategia en paralelo y comparar rendimiento.",
     },
     {
       id: "skeleton",
       label: "Skeleton",
       desc: "Bot base en desarrollo local. Plantilla para nuevas estrategias — aún no desplegado.",
       defaultStatus: "offline",
+      updated: "2026-03-27",
+      nextUp: "Subir a VPS y conectar al ciclo de reporte Supabase.",
     },
   ];
 
@@ -195,16 +227,22 @@
       id: "btc5m-research",
       label: "BTC 5m Research",
       desc: "Señales de momentum en velas de 5 minutos de BTC. Evaluando edge antes de paper-trading.",
+      updated: "2026-03-22",
+      nextUp: "Completar backtest con datos de marzo y decidir si promueve a paper.",
     },
     {
       id: "btc-micro5m",
       label: "BTC Micro 5m",
       desc: "Variante scalp en micro-caps con BTC. Experimenta con umbrales de entrada más agresivos.",
+      updated: "2026-03-22",
+      nextUp: "Ajustar threshold de entrada y correr walk-forward sobre últimos 30 días.",
     },
     {
       id: "botardo-prism",
       label: "Botardo Prism",
       desc: "Ensemble overlay que combina múltiples señales. Fase de calibración de pesos.",
+      updated: "2026-03-22",
+      nextUp: "Calibrar pesos del ensemble con resultados de btc5m y btc-micro5m.",
     },
   ];
 
@@ -299,6 +337,12 @@
     const errBlock = status === "error" && supaRow?.last_error
       ? `<div class="card-error">${esc(supaRow.last_error)}</div>` : "";
 
+    const footerBlock = (bot.updated || bot.nextUp) ? `
+      <div class="card-footer">
+        ${bot.updated ? `<div class="card-footer-row"><span class="footer-key">Actualizado</span><span class="footer-val">${esc(bot.updated)}</span></div>` : ""}
+        ${bot.nextUp  ? `<div class="card-footer-row"><span class="footer-key">Próximo</span><span class="footer-val">${esc(bot.nextUp)}</span></div>` : ""}
+      </div>` : "";
+
     return `
       <div class="card${offline}">
         <div class="card-top">
@@ -309,10 +353,16 @@
         ${statsBlock}
         ${metaBlock}
         ${errBlock}
+        ${footerBlock}
       </div>`;
   }
 
   function renderResearchCard(bot) {
+    const footerBlock = (bot.updated || bot.nextUp) ? `
+      <div class="card-footer">
+        ${bot.updated ? `<div class="card-footer-row"><span class="footer-key">Actualizado</span><span class="footer-val">${esc(bot.updated)}</span></div>` : ""}
+        ${bot.nextUp  ? `<div class="card-footer-row"><span class="footer-key">Próximo</span><span class="footer-val">${esc(bot.nextUp)}</span></div>` : ""}
+      </div>` : "";
     return `
       <div class="card">
         <div class="card-top">
@@ -320,6 +370,7 @@
           <span class="badge badge-research">Research</span>
         </div>
         <div class="card-desc">${esc(bot.desc)}</div>
+        ${footerBlock}
       </div>`;
   }
 
