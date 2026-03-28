@@ -225,11 +225,13 @@
   function buildWinStats(rows) {
     const s = {};
     for (const r of rows) {
-      if (!s[r.bot_id]) s[r.bot_id] = { wins: 0, total: 0 };
+      if (!s[r.bot_id]) s[r.bot_id] = { wins: 0, closed: 0, open: 0 };
       const o = (r.outcome || "").toLowerCase();
       if (["win","loss","expired","resolved"].includes(o)) {
-        s[r.bot_id].total++;
+        s[r.bot_id].closed++;
         if (o === "win") s[r.bot_id].wins++;
+      } else if (["open","shadow","paper"].includes(o)) {
+        s[r.bot_id].open++;
       }
     }
     return s;
@@ -266,11 +268,11 @@
     const status   = supaRow?.status ?? bot.defaultStatus;
     const lastRun  = timeAgo(supaRow?.last_run_at);
     const hasData  = !!supaRow;
-    const ws2      = ws[bot.id] || { wins: 0, total: 0 };
-    const winRate  = ws2.total > 0 ? Math.round(ws2.wins / ws2.total * 100) : null;
+    const ws2      = ws[bot.id] || { wins: 0, closed: 0, open: 0 };
+    const winRate  = ws2.closed > 0 ? Math.round(ws2.wins / ws2.closed * 100) : null;
     const winDisp  = winRate === null ? "—" : `${winRate}%`;
     const winClass = winRate !== null && winRate >= 50 ? "win-positive" : "win-neutral";
-    const openPos  = supaRow?.meta?.openPositions ?? "—";
+    const openPos  = supaRow?.meta?.openPositions ?? ws2.open;
     const offline  = !hasData ? " offline" : "";
 
     const statsBlock = hasData ? `
@@ -280,11 +282,11 @@
           <span class="stat-label">Win Rate</span>
         </div>
         <div class="stat">
-          <span class="stat-value">${ws2.total}</span>
+          <span class="stat-value">${ws2.closed}</span>
           <span class="stat-label">Closed</span>
         </div>
         <div class="stat">
-          <span class="stat-value">${esc(String(openPos))}</span>
+          <span class="stat-value">${openPos}</span>
           <span class="stat-label">Open</span>
         </div>
       </div>
