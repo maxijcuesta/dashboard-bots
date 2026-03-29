@@ -242,42 +242,18 @@
     },
   ];
 
-  // ─── GITHUB FETCH ────────────────────────────────────────────────────────────
-  async function ghLastCommit(repo) {
-    try {
-      const res = await fetch(
-        `https://api.github.com/repos/${GITHUB_USER}/${repo}/commits?sha=main&per_page=1`,
-        { headers: { Accept: "application/vnd.github+json" } }
-      );
-      if (!res.ok) return null;
-      const [data] = await res.json();
-      const iso = data?.commit?.author?.date || data?.commit?.committer?.date;
-      if (!iso) return null;
-      const d = new Date(iso);
-      return d.toISOString().slice(0, 10); // "YYYY-MM-DD"
-    } catch { return null; }
-  }
+  // ─── BOTS META ───────────────────────────────────────────────────────────────
+  // Lee bots.json del repo dashboard-bots (público). Cada bot repo lo actualiza
+  // automáticamente vía GitHub Action al hacer push.
+  const BOTS_JSON_URL =
+    `https://raw.githubusercontent.com/${GITHUB_USER}/dashboard-bots/main/bots.json`;
 
-  async function ghDashboardJson(repo, path = "dashboard.json") {
+  async function fetchGitHubMeta() {
     try {
-      const res = await fetch(
-        `https://raw.githubusercontent.com/${GITHUB_USER}/${repo}/main/${path}`
-      );
-      if (!res.ok) return null;
+      const res = await fetch(`${BOTS_JSON_URL}?t=${Math.floor(Date.now()/60000)}`);
+      if (!res.ok) return {};
       return await res.json();
-    } catch { return null; }
-  }
-
-  async function fetchGitHubMeta(bots) {
-    const results = await Promise.all(bots.map(async (bot) => {
-      if (!bot.repo) return { id: bot.id, updated: null, nextUp: bot.nextUp ?? null };
-      const [updated, djson] = await Promise.all([
-        ghLastCommit(bot.repo),
-        ghDashboardJson(bot.repo, bot.dashboardJsonPath ?? "dashboard.json"),
-      ]);
-      return { id: bot.id, updated, nextUp: djson?.nextUp ?? bot.nextUp ?? null };
-    }));
-    return Object.fromEntries(results.map(r => [r.id, r]));
+    } catch { return {}; }
   }
 
   // ─── SUPABASE FETCH ───────────────────────────────────────────────────────────
@@ -412,20 +388,20 @@
       </div>`; // renderResearchCard end
   }
 
-  // ─── GITHUB META CACHE ───────────────────────────────────────────────────────
-  // GitHub API sin auth: 60 req/hora. Con 8 bots × 2 calls = 16 req por fetch.
-  // Se cachea en memoria y se refresca cada 15 minutos, no en cada tick de Supabase.
-  const GH_CACHE_MS = 15 * 60 * 1000;
+  // ─── BOTS META CACHE ─────────────────────────────────────────────────────────
+  // bots.json es estático — se refresca cada 10 minutos, no en cada tick de Supabase.
+  const GH_CACHE_MS = 10 * 60 * 1000;
   let _ghCache = null;
   let _ghCacheAt = 0;
 
   async function getGitHubMeta() {
     const now = Date.now();
     if (_ghCache && now - _ghCacheAt < GH_CACHE_MS) return _ghCache;
-    const allBots = [...ACTIVE_BOTS, ...RESEARCH_BOTS];
-    const meta = await fetchGitHubMeta(allBots);
-    _ghCache  = meta;
-    _ghCacheAt = now;
+    const meta = await fetchGitHubMeta();
+    if (Object.keys(meta).length > 0) { // solo cachea si trajo datos
+      _ghCache  = meta;
+      _ghCacheAt = now;
+    }
     return meta;
   }
 

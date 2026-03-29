@@ -1,0 +1,38 @@
+{
+  "weatherbot": {
+    "updated": "2026-03-27",
+    "nextUp": "Ampliar cobertura a mercados de lluvia y temperatura por región."
+  },
+  "botardobtc": {
+    "updated": "2026-03-25",
+    "nextUp": "Diseñar nueva estrategia con señales de orderflow y re-deployar en EC2."
+  },
+  "botardobtc2": {
+    "updated": "2026-03-27",
+    "nextUp": "Agregar GitHub Actions para correr el collector automáticamente cada día."
+  },
+  "polymarket-paper-bot": {
+    "updated": "2026-03-27",
+    "nextUp": "Evaluar win rate tras primeras 50 operaciones y ajustar umbrales de entrada."
+  },
+  "botardosx3": {
+    "updated": "2026-03-27",
+    "nextUp": "Integrar segunda estrategia en paralelo y comparar rendimiento."
+  },
+  "skeleton": {
+    "updated": "2026-03-27",
+    "nextUp": "Subir a VPS y conectar al ciclo de reporte Supabase."
+  },
+  "btc5m-research": {
+    "updated": "2026-03-22",
+    "nextUp": "Completar backtest con datos de marzo y decidir si promueve a paper."
+  },
+  "btc-micro5m": {
+    "updated": "2026-03-22",
+    "nextUp": "Ajustar threshold de entrada y correr walk-forward sobre últimos 30 días."
+  },
+  "botardo-prism": {
+    "updated": "2026-03-22",
+    "nextUp": "Calibrar pesos del ensemble con resultados de btc5m y btc-micro5m."
+  }
+}
