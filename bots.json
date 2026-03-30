@@ -1,7 +1,7 @@
 {
   "weatherbot": {
     "updated": "2026-03-30",
-    "nextUp": "Ampliar cobertura a mercados de lluvia y temperatura por región."
+    "nextUp": "Auditar métricas go/no-go con n≥50 señales settleadas: hit rate, PnL virtual, calibración σ, Brier score. Si pasa, activar ejecución real con sizing mínimo."
   },
   "botardobtc": {
     "updated": "2026-03-25",
