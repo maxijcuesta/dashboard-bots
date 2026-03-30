@@ -19,6 +19,10 @@
     "updated": "2026-03-27",
     "nextUp": "Integrar segunda estrategia en paralelo y comparar rendimiento."
   },
+  "walletalpha": {
+    "updated": "2026-03-30",
+    "nextUp": "Calibrar filtros de entrada con análisis de near-miss y evaluar variantes shadow."
+  },
   "skeleton": {
     "updated": "2026-03-27",
     "nextUp": "Subir a VPS y conectar al ciclo de reporte Supabase."
