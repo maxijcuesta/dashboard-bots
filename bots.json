@@ -8,8 +8,8 @@
     "nextUp": "Diseñar nueva estrategia con señales de orderflow y re-deployar en EC2."
   },
   "botardobtc2": {
-    "updated": "2026-03-27",
-    "nextUp": "Agregar GitHub Actions para correr el collector automáticamente cada día."
+    "updated": "'$(date -u +%Y-%m-%d)'",
+    "nextUp": "'Agregar GitHub Actions para correr el collector automáticamente cada día.'"
   },
   "polymarket-paper-bot": {
     "updated": "2026-03-27",
