@@ -9,7 +9,7 @@
   },
   "botardobtc2": {
     "updated": "'$(date -u +%Y-%m-%d)'",
-    "nextUp": "'Agregar GitHub Actions para correr el collector automáticamente cada día.'"
+    "nextUp": "''"
   },
   "polymarket-paper-bot": {
     "updated": "2026-03-27",
