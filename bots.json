@@ -1,6 +1,6 @@
 {
   "weatherbot": {
-    "updated": "2026-03-31",
+    "updated": "2026-04-04",
     "nextUp": "Auditar métricas go/no-go con n≥50 señales settleadas: hit rate, PnL virtual, calibración σ, Brier score. Si pasa, activar ejecución real con sizing mínimo."
   },
   "botardobtc": {
