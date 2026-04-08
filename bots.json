@@ -16,8 +16,8 @@
     "nextUp": "Evaluar win rate tras primeras 50 operaciones y ajustar umbrales de entrada."
   },
   "botardosx3": {
-    "updated": "2026-03-27",
-    "nextUp": "Integrar segunda estrategia en paralelo y comparar rendimiento."
+    "updated": "'$(date -u +%Y-%m-%d)'",
+    "nextUp": "'Integrar segunda estrategia en paralelo y comparar rendimiento.'"
   },
   "walletalpha": {
     "updated": "2026-03-30",
